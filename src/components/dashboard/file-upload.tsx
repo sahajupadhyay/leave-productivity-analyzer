@@ -192,6 +192,7 @@ export function FileUpload({
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [uploadDetails, setUploadDetails] = useState<UploadSuccessResponse['details'] | null>(null);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
   
   // File input ref for programmatic triggering
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -210,29 +211,15 @@ export function FileUpload({
   // ==========================================================================
   
   /**
-   * Handle file selection from input
-   * 
-   * Validates file type and size before accepting.
-   * Provides immediate feedback for validation failures.
-   * 
-   * @param {React.ChangeEvent<HTMLInputElement>} event - File input change event
+   * Process and validate a file
    */
-  const handleFileChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>): void => {
-      const files = event.target.files;
-      
+  const processFile = useCallback(
+    (file: File): void => {
       // Reset state
       setErrorMessage('');
       setUploadState('idle');
       setUploadProgress(0);
       setUploadDetails(null);
-      
-      if (!files || files.length === 0) {
-        setSelectedFile(null);
-        return;
-      }
-      
-      const file = files[0];
       
       // Validate file extension
       if (!isValidFileExtension(file.name)) {
@@ -248,7 +235,7 @@ export function FileUpload({
       
       // Validate file size
       if (!isValidFileSize(file.size, maxFileSizeBytes)) {
-        const error = `File size (${formatFileSize(file.size)}) exceeds maximum allowed size (${formatFileSize(maxFileSizeBytes)})`;
+        const error = `File size exceeds maximum allowed size of ${formatFileSize(maxFileSizeBytes)}`;
         setErrorMessage(error);
         setUploadState('error');
         toast.error('File Too Large', {
@@ -261,11 +248,72 @@ export function FileUpload({
       // File is valid
       setSelectedFile(file);
       toast.success('File Selected', {
-        description: `${file.name} (${formatFileSize(file.size)})`,
+        description: `${file.name} is ready to upload`,
       });
     },
     [maxFileSizeBytes]
   );
+  
+  /**
+   * Handle file selection from input
+   */
+  const handleFileChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>): void => {
+      const files = event.target.files;
+      
+      if (!files || files.length === 0) {
+        setSelectedFile(null);
+        return;
+      }
+      
+      const file = files[0];
+      processFile(file);
+    },
+    [processFile]
+  );
+  
+  /**
+   * Handle drag over event
+   */
+  const handleDragOver = useCallback((event: React.DragEvent<HTMLDivElement>): void => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragging(true);
+  }, []);
+  
+  /**
+   * Handle drag leave event
+   */
+  const handleDragLeave = useCallback((event: React.DragEvent<HTMLDivElement>): void => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragging(false);
+  }, []);
+  
+  /**
+   * Handle file drop
+   */
+  const handleDrop = useCallback(
+    (event: React.DragEvent<HTMLDivElement>): void => {
+      event.preventDefault();
+      event.stopPropagation();
+      setIsDragging(false);
+      
+      if (isUploading) {
+        return;
+      }
+      
+      const files = event.dataTransfer.files;
+      if (!files || files.length === 0) {
+        return;
+      }
+      
+      const file = files[0];
+      processFile(file);
+    },
+    [isUploading, processFile]
+  );
+  
   
   /**
    * Handle file upload to server
@@ -437,9 +485,13 @@ export function FileUpload({
             isIdle && 'border-muted-foreground/25 hover:border-muted-foreground/50 cursor-pointer',
             isUploading && 'border-primary/50 bg-primary/5',
             isSuccess && 'border-green-500/50 bg-green-50 dark:bg-green-950',
-            isError && 'border-destructive/50 bg-destructive/5'
+            isError && 'border-destructive/50 bg-destructive/5',
+            isDragging && 'border-primary bg-primary/10'
           )}
           onClick={isIdle && !selectedFile ? handleSelectFileClick : undefined}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
           role="button"
           tabIndex={isIdle && !selectedFile ? 0 : -1}
           onKeyDown={(e) => {
