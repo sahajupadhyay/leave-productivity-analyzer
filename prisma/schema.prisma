@@ -1,0 +1,93 @@
+// This is your Prisma schema file for the Leave & Productivity Analyzer
+// Documentation: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+/// Employee model representing staff members in the organization.
+/// Each employee has a unique name and related attendance records.
+model Employee {
+  /// Unique MongoDB ObjectId identifier
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  
+  /// Unique employee name - used as primary business identifier
+  name String @unique
+  
+  /// Related attendance records for this employee
+  attendance AttendanceRecord[]
+  
+  /// Timestamp when the employee record was created
+  createdAt DateTime @default(now())
+  
+  /// Timestamp when the employee record was last updated
+  updatedAt DateTime @updatedAt
+  
+  @@map("employees")
+}
+
+/// AttendanceRecord model representing daily attendance entries.
+/// Tracks check-in/out times, work hours, and attendance status.
+/// Enforces data integrity with unique compound index on employee-date pair.
+model AttendanceRecord {
+  /// Unique MongoDB ObjectId identifier
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  
+  /// Foreign key reference to Employee ObjectId
+  employeeId String @db.ObjectId
+  
+  /// Reference to the associated employee
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  
+  /// Date of the attendance record (stored as DateTime, time component ignored for uniqueness)
+  date DateTime
+  
+  /// Check-in time in string format (e.g., "09:00" or "09:00:00")
+  /// Nullable to support absent/weekend/holiday entries
+  inTime String?
+  
+  /// Check-out time in string format (e.g., "17:30" or "17:30:00")
+  /// Nullable to support incomplete shifts or absent entries
+  outTime String?
+  
+  /// Calculated worked hours for the day
+  /// Default 0 for absent/weekend/holiday or when times are not recorded
+  workedHours Float @default(0)
+  
+  /// Attendance status enumeration
+  status AttendanceStatus
+  
+  /// Timestamp when the record was created
+  createdAt DateTime @default(now())
+  
+  /// Timestamp when the record was last updated
+  updatedAt DateTime @updatedAt
+  
+  /// Compound unique index ensuring one record per employee per day
+  /// This prevents duplicate attendance entries and maintains data integrity
+  @@unique([employeeId, date])
+  
+  @@map("attendance_records")
+  @@index([date])
+  @@index([status])
+}
+
+/// Enumeration for attendance status types
+enum AttendanceStatus {
+  /// Employee was present and checked in
+  PRESENT
+  
+  /// Employee was absent
+  ABSENT
+  
+  /// Weekend day (typically Saturday/Sunday)
+  WEEKEND
+  
+  /// Public or company holiday
+  HOLIDAY
+}

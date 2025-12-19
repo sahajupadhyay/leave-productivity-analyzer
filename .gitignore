@@ -1,6 +1,6 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
+# dependencies (CRITICAL: do not commit)
 /node_modules
 /.pnp
 .pnp.*
@@ -30,8 +30,11 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# env files (CRITICAL: contains MongoDB password - NEVER commit)
+.env
+.env.*
+.env.local
+.env.production
 
 # vercel
 .vercel
@@ -39,3 +42,5 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/src/generated/prisma
