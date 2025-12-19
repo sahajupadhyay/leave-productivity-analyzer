@@ -8,7 +8,7 @@
 A production-grade enterprise solution for tracking employee attendance, monitoring leaves, and analyzing team productivity metrics with automated reporting.
 
 ## 🚀 Live Demo
-
+[View Live Application](https://leave-productivity-analyzer.vercel.app/)
 Deploy your own instance: [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone)
 
 ## 📸 Screenshots
@@ -137,7 +137,7 @@ A sample Excel file is included in the repository for immediate testing:
 
 **1. Clone the Repository**
 ```bash
-git clone <repository-url>
+git clone https://github.com/sahajupadhyay/leave-productivity-analyzer
 cd KenMark
 ```
 
